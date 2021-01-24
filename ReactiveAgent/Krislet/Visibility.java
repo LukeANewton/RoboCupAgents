@@ -1,0 +1,1 @@
+public enum Visibility {Visible, NotVisible, DirectlyInFront};
