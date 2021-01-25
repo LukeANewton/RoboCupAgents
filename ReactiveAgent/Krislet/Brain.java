@@ -142,20 +142,8 @@ class Brain extends Thread implements SensorInput
 
 
 			// STEP 2: use agent mapping to determine action
-			/* For some reason, a simple "String actionString = agentMapping.get(environmentState);"
-			keeps giving me null. Rather than mess about with hashcodes or whatever is going on here,
-			this implementation achieves the same thing in a much uglier way, and allows me to focus
-			on the purpose of the assignment*/
-			String actionString = null;
-			Iterator it = agentMapping.entrySet().iterator();
-			while (it.hasNext()) {
-				Map.Entry pair = (Map.Entry)it.next();
-				if(environmentState.equals(pair.getKey())) {
-					actionString = (String) pair.getValue();
-					System.out.println(environmentState + " -> " + actionString);
-					break;
-				}
-			}
+			String actionString = agentMapping.get(environmentState);
+			System.out.println(environmentState + " -> " + actionString);
 			String[] actionComponents = actionString.split(":");
 			Action action = Action.valueOf(actionComponents[0].trim());
 			switch(action){

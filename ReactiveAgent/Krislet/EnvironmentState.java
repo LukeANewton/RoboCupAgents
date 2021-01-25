@@ -1,9 +1,9 @@
 import java.util.Objects;
 
 public class EnvironmentState {
-    private Visibility ballVisibility;
-    private BallProximity ballProximity;
-    private Visibility goalVisibility;
+    private final Visibility ballVisibility;
+    private final BallProximity ballProximity;
+    private final Visibility goalVisibility;
 
     public EnvironmentState(Visibility ballVisibility, BallProximity ballProximity, Visibility goalVisibility) {
         this.ballVisibility = ballVisibility;
