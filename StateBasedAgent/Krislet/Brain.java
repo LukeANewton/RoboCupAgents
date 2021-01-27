@@ -8,11 +8,30 @@
 //    Modified by:      Edgar Acosta
 //    Date:             March 4, 2008
 
+//    Modified by:		Luke Newton
+//	  Date:				January 23, 2021
+
 import java.lang.Math;
 import java.util.regex.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.File;
+import java.util.function.Consumer;
+import java.util.Iterator;
+import java.util.Map;
 
 class Brain extends Thread implements SensorInput
 {
+	private static final String agentSpecFilename = "AgentSpec.txt";
+
+	private static enum Action {Turn, Dash, Kick};
+
+	private HashMap<EnvironmentState, String> agentMapping;
+
     //---------------------------------------------------------------------------
     // This constructor:
     // - stores connection to krislet
@@ -30,92 +49,150 @@ class Brain extends Thread implements SensorInput
 	m_side = side;
 	// m_number = number;
 	m_playMode = playMode;
+
+	ArrayList<String> agentSpec = readAgentSpec();
+	agentMapping = parseSpec(agentSpec);
+
 	start();
     }
 
+	/**
+	 * Read in the agent specification file to determine agent behavior
+	 *
+	 * returns the contents of the specification file as an ArrayList of strings
+	 */
+	private ArrayList<String> readAgentSpec(){
+		try {
+			File file = new File(agentSpecFilename);
+			BufferedReader br = new BufferedReader(new FileReader(file));
 
-    //---------------------------------------------------------------------------
-    // This is main brain function used to make decision
-    // In each cycle we decide which command to issue based on
-    // current situation. the rules are:
-    //
-    //	1. If you don't know where is ball then turn right and wait for new info
-    //
-    //	2. If ball is too far to kick it then
-    //		2.1. If we are directed towards the ball then go to the ball
-    //		2.2. else turn to the ball
-    //
-    //	3. If we dont know where is opponent goal then turn wait 
-    //				and wait for new info
-    //
-    //	4. Kick ball
-    //
-    //	To ensure that we don't send commands to often after each cycle
-    //	we waits one simulator steps. (This of course should be done better)
+			ArrayList<String> lines = new ArrayList<>();
+			String st;
+			while ((st = br.readLine()) != null)
+				lines.add(st);
+			return lines;
+		}catch(Exception e){
+			return null;
+		}
+	}
 
-    // ***************  Improvements ******************
-    // Allways know where the goal is.
-    // Move to a place on my side on a kick_off
-    // ************************************************
+	private HashMap<EnvironmentState, String> parseSpec(ArrayList<String> agentSpec){
+		HashMap<EnvironmentState, String> mapping = new HashMap<>();
 
-    public void run()
-    {
-	ObjectInfo object;
+		for(String behavior: agentSpec){
+			if(behavior.trim().isEmpty() || behavior.startsWith("#"))
+				continue;
 
-	// first put it somewhere on my side
-	if(Pattern.matches("^before_kick_off.*",m_playMode))
-	    m_krislet.move( -Math.random()*52.5 , 34 - Math.random()*68.0 );
+			String[] split_behavior = behavior.split("->");
+			String actionString = split_behavior[1];
 
-	while( !m_timeOver )
-	    {
-		object = m_memory.getObject("ball");
-		if( object == null )
-		    {
-			// If you don't know where is ball then find it
-			m_krislet.turn(40);
-			m_memory.waitForNewInfo();
-		    }
-		else if( object.m_distance > 1.0 )
-		    {
-			// If ball is too far then
-			// turn to ball or 
-			// if we have correct direction then go to ball
-			if( object.m_direction != 0 )
-			    m_krislet.turn(object.m_direction);
-			else
-			    m_krislet.dash(10*object.m_distance);
-		    }
-		else 
-		    {
-			// We know where is ball and we can kick it
-			// so look for goal
+			String[] environmentStates = split_behavior[0].replaceAll("\\(", "").replaceAll("\\)","").split(",");
+			Visibility ballVisibility = Visibility.valueOf(environmentStates[0].trim());
+			BallProximity ballProximity = BallProximity.valueOf(environmentStates[1].trim());
+			Visibility goalVisibility = Visibility.valueOf(environmentStates[2].trim());
+
+			mapping.put(new EnvironmentState(ballVisibility, ballProximity, goalVisibility), actionString);
+		}
+
+		return mapping;
+	}
+
+    public void run() {
+		ObjectInfo ball;
+		ObjectInfo goal;
+
+		// first put it somewhere on my side
+		if(Pattern.matches("^before_kick_off.*",m_playMode))
+			m_krislet.move( -Math.random()*52.5 , 34 - Math.random()*68.0 );
+
+		while( !m_timeOver ){
+			//STEP 1: determine current environment state
+			Visibility ballVisibility;
+			BallProximity ballProximity;
+			Visibility goalVisibility;
+			ball = m_memory.getObject("ball");
+			if( ball == null ){
+			   ballVisibility = Visibility.NotVisible;
+			   ballProximity = BallProximity.Unknown;
+			} else {
+			   if( ball.m_distance > 1.0 ) {
+				   ballProximity = BallProximity.Far;
+			   } else {
+				   ballProximity = BallProximity.Close;
+			   }
+			   if( ball.m_direction != 0 ) {
+				   ballVisibility = Visibility.Visible;
+			   } else {
+				   ballVisibility = Visibility.DirectlyInFront;
+			   }
+			}
 			if( m_side == 'l' )
-			    object = m_memory.getObject("goal r");
+				goal = m_memory.getObject("goal r");
 			else
-			    object = m_memory.getObject("goal l");
+				goal = m_memory.getObject("goal l");
+			if( goal == null ){
+				goalVisibility = Visibility.NotVisible;
+			} else if( goal.m_direction != 0 ) {
+				goalVisibility = Visibility.Visible;
+			} else {
+				goalVisibility = Visibility.DirectlyInFront;
+			}
+			EnvironmentState environmentState = new EnvironmentState(ballVisibility, ballProximity, goalVisibility);
 
-			if( object == null )
-			    {
-				m_krislet.turn(40);
-				m_memory.waitForNewInfo();
-			    }
-			else
-			    m_krislet.kick(100, object.m_direction);
-		    }
 
-		// sleep one step to ensure that we will not send
-		// two commands in one cycle.
-		try{
-		    Thread.sleep(2*SoccerParams.simulator_step);
-		}catch(Exception e){}
-	    }
-	m_krislet.bye();
+
+			// STEP 2: use agent mapping to determine action
+			String actionString = agentMapping.get(environmentState);
+			System.out.println(environmentState + " -> " + actionString);
+			String[] actionComponents = actionString.split(":");
+			Action action = Action.valueOf(actionComponents[0].trim());
+			switch(action){
+				case Dash:
+					m_krislet.dash(Integer.parseInt(actionComponents[1]));
+					break;
+				case Turn:
+					if(isInteger(actionComponents[1])){
+						m_krislet.turn(Integer.parseInt(actionComponents[1]));
+					} else if(actionComponents[1].toLowerCase().equals("ball") && ball != null){
+						m_krislet.turn(ball.m_direction);
+					} else if(actionComponents[1].toLowerCase().equals("goal") && goal != null){
+						m_krislet.turn(goal.m_direction);
+					}
+					m_memory.waitForNewInfo();
+					break;
+				case Kick:
+					if(isInteger(actionComponents[2])){
+						m_krislet.kick(Integer.parseInt(actionComponents[1]), Integer.parseInt(actionComponents[2]));
+					} else if(actionComponents[2].toLowerCase().equals("ball") && ball != null){
+						m_krislet.kick(Integer.parseInt(actionComponents[1]), ball.m_direction);
+					} else if(actionComponents[2].toLowerCase().equals("goal") && goal != null){
+						m_krislet.kick(Integer.parseInt(actionComponents[1]), goal.m_direction);
+					}
+					break;
+			}
+
+
+			// sleep one step to ensure that we will not send
+			// two commands in one cycle.
+			try{
+				Thread.sleep(2*SoccerParams.simulator_step);
+			}catch(Exception e){}
+		}
+		m_krislet.bye();
     }
 
 
     //===========================================================================
     // Here are suporting functions for implement logic
 
+	public static boolean isInteger(String str) {
+		try {
+			Integer.parseInt(str);
+			return true;
+		} catch(NumberFormatException e){
+			return false;
+		}
+	}
 
     //===========================================================================
     // Implementation of SensorInput Interface

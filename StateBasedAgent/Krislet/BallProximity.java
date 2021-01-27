@@ -1,0 +1,1 @@
+public enum BallProximity {Close, Far, Unknown};
