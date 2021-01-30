@@ -1,0 +1,1 @@
+public enum GoalVisibility{Visible, NotVisible}

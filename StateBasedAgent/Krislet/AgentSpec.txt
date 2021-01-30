@@ -1,29 +1,59 @@
-# general form: (<ball visibility>, <ball proximity>, <goal visibility>) -> <action>:<power>:<direction>
+# general form: (<ball visibility>, <ball proximity>, <my goal visibility>, 
+		<opponent goal visibility>) -> <action> X <state>
 #
 # where:
-#	<ball visibility> is one of {NotVisible, Visible, DirectlyInFront}
+#	<ball visibility> is one of {NotVisible, Visible, InFront}
 #	<ball proximity> is one of {Unknown, Close, Far}
-#	<goal visibility> is one of {NotVisible, Visible, DirectlyInFront}
-#	<action> is one of {Turn, Kick, Dash}
-#	<power> is an integer, and only applicable when <action> is kick or dash
-#	<direction> is integer, or one of {ball, goal}, and is only applicable when <action> is kick or turn
+#	<my goal visibility> is one of {NotVisible, Visible}
+#	<opponent goal visibility> is one of {NotVisible, Visible}
+#	<action> is one of {Turn, TurnToBall, TurnToMyGoal, TurnToOpponentGoal, TurnAround, 
+						KickForward, KickBehind, KickAtOpponentGoal, Dash}
+#	<state> is one of {SearchingForBall, BallInView}
 
-(NotVisible, Unknown, NotVisible) -> Turn:40
-(NotVisible, Unknown, Visible) -> Turn:40
-(NotVisible, Unknown, DirectlyInFront) -> Turn:40
 
-(Visible, Far, NotVisible) -> Turn:ball
-(Visible, Far, Visible) -> Turn:ball
-(Visible, Far, DirectlyInFront) -> Turn:ball
+State: SearchingForBall
+	# if the ball is not visible, turn to look for it
+	(NotVisible, Unknown, NotVisible, NotVisible) -> Turn
+	(NotVisible, Unknown, Visible, NotVisible) -> Turn
+	(NotVisible, Unknown, NotVisible, Visible) -> Turn
+	(NotVisible, Unknown, Visible, Visible) -> Turn
 
-(Visible, Close, NotVisible) -> Turn:40
-(Visible, Close, Visible) -> Kick:100:goal
-(Visible, Close, DirectlyInFront) -> Kick:100:goal
+	# once the ball is in view, turn to directly face it
+	(Visible, Far, NotVisible, NotVisible) -> TurnToBall
+	(Visible, Far, Visible, NotVisible) -> TurnToBall
+	(Visible, Close, NotVisible, NotVisible) -> TurnToBall
+	(Visible, Close, Visible, NotVisible) -> TurnToBall
+	(Visible, Far, NotVisible, Visible) -> TurnToBall
+	(Visible, Far, Visible, Visible) -> TurnToBall
+	(Visible, Close, NotVisible, Visible) -> TurnToBall
+	(Visible, Close, Visible, Visible) -> TurnToBall
 
-(DirectlyInFront, Far, NotVisible) -> Dash:100
-(DirectlyInFront, Far, Visible) -> Dash:100
-(DirectlyInFront, Far, DirectlyInFront) -> Dash:100
+State: BallInView
+	# if the ball is not in view, try behind us first
+	(NotVisible, Unknown, NotVisible, NotVisible) -> TurnAround
+	(NotVisible, Unknown, Visible, NotVisible) -> TurnAround
+	(NotVisible, Unknown, NotVisible, Visible) -> TurnAround
+	(NotVisible, Unknown, Visible, Visible) -> TurnAround
+	
+	# if the ball is in view, turn to directly face it
+	(Visible, Far, NotVisible, NotVisible) -> TurnToBall
+	(Visible, Far, Visible, NotVisible) -> TurnToBall
+	(Visible, Far, NotVisible, Visible) -> TurnToBall
+	(Visible, Far, Visible, Visible) -> TurnToBall
 
-(DirectlyInFront, Close, NotVisible) -> Turn:40
-(DirectlyInFront, Close, Visible) -> Turn:goal
-(DirectlyInFront, Close, DirectlyInFront) -> Kick:100:goal
+	# once the ball is directly in front, run towards it
+	(InFront, Far, NotVisible, NotVisible) -> Dash
+	(InFront, Far, Visible, NotVisible) -> Dash
+	(InFront, Far, NotVisible, Visible) -> Dash
+	(InFront, Far, Visible, Visible) -> Dash
+	
+	# if we get to the ball and can see the opponent net, kick at it
+	(Visible, Close, NotVisible, Visible) -> KickAtOpponentGoal
+	(InFront, Close, Visible, Visible) -> KickAtOpponentGoal
+
+	# if we cant see either net, turn to look for a net
+	(Visible, Close, NotVisible, NotVisible) -> Turn
+	
+	# if we can see our net, the other net is behind us, so kick the ball backwards
+	(Visible, Close, Visible, NotVisible) -> KickBehind	
+

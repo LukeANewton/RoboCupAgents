@@ -1,0 +1,1 @@
+public enum BallVisibility {Visible, NotVisible, InFront};
