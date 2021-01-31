@@ -5,16 +5,19 @@ import java.io.FileReader;
 import java.io.File;
 import java.util.Iterator;
 import java.util.Map;
+import java.lang.reflect.Method;
 
 public abstract class  BrainState{
     private static final String agentSpecFilename = "AgentSpec.txt";
+
     protected HashMap<EnvironmentState, Action> agentMapping;
+    protected HashMap<EnvironmentState, Class<?>> stateMapping;
 
     protected static Brain brain;
 
     protected void readStateActions(){
         ArrayList<String> agentSpec = readAgentSpec();
-        agentMapping = parseSpec(agentSpec);
+        parseSpec(agentSpec);
     }
 
     private ArrayList<String> readAgentSpec(){
@@ -44,15 +47,16 @@ public abstract class  BrainState{
         }
     }
 
-    private HashMap<EnvironmentState, Action> parseSpec(ArrayList<String> agentSpec){
-        HashMap<EnvironmentState, Action> mapping = new HashMap<>();
+    private void parseSpec(ArrayList<String> agentSpec){
+        agentMapping = new HashMap<EnvironmentState, Action>();
+        stateMapping = new HashMap<EnvironmentState, Class<?>>();
 
         for(String behavior: agentSpec){
             if(behavior.trim().isEmpty() || behavior.trim().startsWith("#"))
                 continue;
 
             String[] split_behavior = behavior.split("->");
-            String actionString = split_behavior[1];
+            String[] actionStateStrings = split_behavior[1].split("X");
 
             String[] environmentStates = split_behavior[0].replaceAll("\\(", "").replaceAll("\\)","").split(",");
             BallVisibility ballVisibility = BallVisibility.valueOf(environmentStates[0].trim());
@@ -60,16 +64,22 @@ public abstract class  BrainState{
             GoalVisibility myGoalVisibility = GoalVisibility.valueOf(environmentStates[2].trim());
             GoalVisibility opponentGoalVisibility = GoalVisibility.valueOf(environmentStates[3].trim());
 
-            mapping.put(new EnvironmentState(ballVisibility, ballProximity, myGoalVisibility, opponentGoalVisibility),
-                    Action.valueOf(actionString.trim()));
+            EnvironmentState environmentState = new EnvironmentState(
+                    ballVisibility, ballProximity, myGoalVisibility, opponentGoalVisibility);
+            agentMapping.put(environmentState, Action.valueOf(actionStateStrings[0].trim()));
+            try{
+                stateMapping.put(environmentState, Class.forName(actionStateStrings[1].trim()));
+            }catch(Exception e){
+                System.out.println(actionStateStrings[1].trim() + " not a recognized class name");
+                System.exit(0);
+            }
         }
-        return mapping;
     }
 
-    public BrainState doAction(EnvironmentState e){
+    public BrainState doAction(EnvironmentState environmentState){
         // STEP 2: use agent mapping to determine action
-        Action action = agentMapping.get(e);
-        System.out.println(this.getClass().getSimpleName() + ": " + e + " -> " + action);
+        Action action = agentMapping.get(environmentState);
+        System.out.println(this.getClass().getSimpleName() + ": " + environmentState + " -> " + action);
 
         if (action != null){
             switch(action){
@@ -101,9 +111,22 @@ public abstract class  BrainState{
                     brain.getM_krislet().dash(100);
                     break;
             }
+            return nextState(environmentState);
         }
-        return nextState(e);
+        return this;
     }
 
-    public abstract BrainState nextState(EnvironmentState e);
+    public BrainState nextState(EnvironmentState environmentState){
+        try{
+            Class<?> c = stateMapping.get(environmentState);
+            System.out.println("Next state: " + c.getSimpleName());
+
+            Method method = c.getDeclaredMethod("getInstance", Brain.class);
+            return (BrainState) method.invoke(null, brain);
+        }catch(Exception e){
+            e.printStackTrace();
+            System.exit(0);
+        }
+        return null;
+    };
 }

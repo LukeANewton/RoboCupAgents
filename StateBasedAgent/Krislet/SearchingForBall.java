@@ -11,12 +11,12 @@ public class SearchingForBall extends BrainState{
         this.brain = brain;
     }
 
-    public BrainState nextState(EnvironmentState e){
+    /*public BrainState nextState(EnvironmentState e){
         if (e.getBallVisibility() == BallVisibility.Visible)
             return BallInView.getInstance(brain);
         return singleton;
 
-    }
+    }*/
 
     public static SearchingForBall getInstance(Brain brain){
         if (singleton == null)
