@@ -9,6 +9,9 @@
 #	<action> is one of {Turn, TurnToBall, TurnToMyGoal, TurnToOpponentGoal, TurnAround, 
 						KickForward, KickBehind, KickAtOpponentGoal, Dash}
 #	<state> is one of {SearchingForBall, BallInView}
+#
+# comments can be included with the '#' character, but can only be at the beginning of a line
+# 		(comments on the same line as a behavior mapping are invalid)
 
 
 State: SearchingForBall
