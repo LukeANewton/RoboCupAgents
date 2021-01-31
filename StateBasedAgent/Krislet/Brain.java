@@ -9,16 +9,10 @@
 //    Date:             March 4, 2008
 
 //    Modified by:		Luke Newton
-//	  Date:				January 27, 2021
+//	  Date:				January 30, 2021
 
 import java.lang.Math;
 import java.util.regex.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
 
 class Brain extends Thread implements SensorInput
 {
@@ -31,28 +25,23 @@ class Brain extends Thread implements SensorInput
     // This constructor:
     // - stores connection to krislet
     // - starts thread for this object
-    public Brain(SendCommand krislet, 
-		 String team, 
-		 char side, 
-		 int number, 
-		 String playMode)
-    {
-	m_timeOver = false;
-	m_krislet = krislet;
-	m_memory = new Memory();
-	//m_team = team;
-	m_side = side;
-	// m_number = number;
-	m_playMode = playMode;
+    public Brain(SendCommand krislet, String team, char side, int number, String playMode) {
+		m_timeOver = false;
+		m_krislet = krislet;
+		m_memory = new Memory();
+		//m_team = team;
+		m_side = side;
+		// m_number = number;
+		m_playMode = playMode;
 
-	//select first state
-	state = SearchingForBall.getInstance(this);
+		//select first state
+		state = SearchingForBall.getInstance(this);
 
-	start();
+		start();
     }
 
     public void run() {
-		// first put it somewhere on my side
+		// first put the agent somewhere on its side
 		if(Pattern.matches("^before_kick_off.*",m_playMode))
 			m_krislet.move( -Math.random()*52.5 , 34 - Math.random()*68.0 );
 
@@ -67,35 +56,17 @@ class Brain extends Thread implements SensorInput
 			   ballVisibility = BallVisibility.NotVisible;
 			   ballProximity = BallProximity.Unknown;
 			} else {
-			   if( ball.m_distance > 1.0 )
-				   ballProximity = BallProximity.Far;
-			   else
-				   ballProximity = BallProximity.Close;
-			   if( ball.m_direction != 0 )
-				   ballVisibility = BallVisibility.Visible;
-			   else
-				   ballVisibility = BallVisibility.InFront;
+				ballProximity = ball.m_distance > 1.0 ? BallProximity.Far : BallProximity.Close;
+				ballVisibility = ball.m_direction != 0 ? BallVisibility.Visible : BallVisibility.InFront;
 			}
 			lGoal = m_memory.getObject("goal l");
 			rGoal = m_memory.getObject("goal r");
 			if( m_side == 'l' ){
-				if (rGoal == null)
-					opponentGoalVisibility = GoalVisibility.NotVisible;
-				else
-					opponentGoalVisibility = GoalVisibility.Visible;
-				if (lGoal == null)
-					myGoalVisibility = GoalVisibility.NotVisible;
-				else
-					myGoalVisibility = GoalVisibility.Visible;
+				opponentGoalVisibility = rGoal == null ? GoalVisibility.NotVisible : GoalVisibility.Visible;
+				myGoalVisibility = lGoal == null ? GoalVisibility.NotVisible : GoalVisibility.Visible;
 			} else {
-				if (rGoal == null)
-					myGoalVisibility = GoalVisibility.NotVisible;
-				else
-					myGoalVisibility = GoalVisibility.Visible;
-				if (lGoal == null)
-					opponentGoalVisibility = GoalVisibility.NotVisible;
-				else
-					opponentGoalVisibility = GoalVisibility.Visible;
+				opponentGoalVisibility = lGoal == null ? GoalVisibility.NotVisible : GoalVisibility.Visible;
+				myGoalVisibility = rGoal == null ? GoalVisibility.NotVisible : GoalVisibility.Visible;
 			}
 			EnvironmentState environmentState = new EnvironmentState(
 					ballVisibility, ballProximity, myGoalVisibility, opponentGoalVisibility);
@@ -115,15 +86,6 @@ class Brain extends Thread implements SensorInput
 
     //===========================================================================
     // Here are suporting functions for implement logic
-
-	public static boolean isInteger(String str) {
-		try {
-			Integer.parseInt(str);
-			return true;
-		} catch(NumberFormatException e){
-			return false;
-		}
-	}
 
 	public ObjectInfo getBall() {
 		return ball;

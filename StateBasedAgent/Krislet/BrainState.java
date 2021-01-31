@@ -3,23 +3,39 @@ import java.util.ArrayList;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.File;
-import java.util.Iterator;
-import java.util.Map;
 import java.lang.reflect.Method;
 
+/**
+ * Represents the internal state of the agent function.
+ *
+ * In :
+ *      Agent: E x I -> Ac x I
+ * this class is the I set
+ */
 public abstract class  BrainState{
+    // the name of the file containing the agent specification
     private static final String agentSpecFilename = "AgentSpec.txt";
 
+    // the mapping from enivonment states to actions (E -> Ac)
     protected HashMap<EnvironmentState, Action> agentMapping;
+    // the mapping from enivonment states to next states (E -> I)
     protected HashMap<EnvironmentState, Class<?>> stateMapping;
 
+    // a reference to the brain which contains locations of entitites
     protected static Brain brain;
 
+    /** reads the agent specification from the specified file and parses into mappings
+     * (creates E -> Ac and E -> I)
+     * **/
     protected void readStateActions(){
         ArrayList<String> agentSpec = readAgentSpec();
         parseSpec(agentSpec);
     }
 
+    /**
+     * scans the agent specification file and reads in the behaviors for the current state
+     * @return an list of agent behaviors from the specification file that belong to the current state
+     */
     private ArrayList<String> readAgentSpec(){
         try {
             File file = new File(agentSpecFilename);
@@ -47,6 +63,10 @@ public abstract class  BrainState{
         }
     }
 
+    /**
+     * converts a list of agent behavior strings into action and next-state mappings
+     * @param agentSpec a list of agent behaviors from the specification file that belong to the current state
+     */
     private void parseSpec(ArrayList<String> agentSpec){
         agentMapping = new HashMap<EnvironmentState, Action>();
         stateMapping = new HashMap<EnvironmentState, Class<?>>();
@@ -77,7 +97,7 @@ public abstract class  BrainState{
     }
 
     public BrainState doAction(EnvironmentState environmentState){
-        // STEP 2: use agent mapping to determine action
+        // use agent mapping to determine action
         Action action = agentMapping.get(environmentState);
         System.out.println(this.getClass().getSimpleName() + ": " + environmentState + " -> " + action);
 
@@ -116,6 +136,11 @@ public abstract class  BrainState{
         return this;
     }
 
+    /**
+     * determines the next state of the agent
+     * @param environmentState the environment state E of the agent function definition
+     * @return the next state I of the agent function definition
+     */
     public BrainState nextState(EnvironmentState environmentState){
         try{
             Class<?> c = stateMapping.get(environmentState);
