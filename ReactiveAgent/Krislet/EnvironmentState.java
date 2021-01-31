@@ -1,8 +1,16 @@
-import java.util.Objects;
 
+/**
+ * The environemtn state input into the agent definition function
+ * In:
+ *      Agent: E -> Ac
+ * This is E
+ */
 public class EnvironmentState {
+    // describes whether the ball is in the agent's line of sight
     private final Visibility ballVisibility;
+    // describes how close the ball is to the agent
     private final BallProximity ballProximity;
+    // describes whether the opponent's goal is in the agents line of sight
     private final Visibility goalVisibility;
 
     public EnvironmentState(Visibility ballVisibility, BallProximity ballProximity, Visibility goalVisibility) {

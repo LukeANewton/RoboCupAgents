@@ -14,46 +14,40 @@
 import java.lang.Math;
 import java.util.regex.*;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.File;
-import java.util.function.Consumer;
-import java.util.Iterator;
-import java.util.Map;
 
 class Brain extends Thread implements SensorInput
 {
+	// the name of the file containing the agent behaviors
 	private static final String agentSpecFilename = "AgentSpec.txt";
 
+	// a set of possible action outputs for the agent specification function (the Ac in E -> Ac)
 	private static enum Action {Turn, Dash, Kick};
 
+	// a mapping of environemtn states to actions (this is the agent function E -> Ac)
 	private HashMap<EnvironmentState, String> agentMapping;
 
     //---------------------------------------------------------------------------
     // This constructor:
     // - stores connection to krislet
     // - starts thread for this object
-    public Brain(SendCommand krislet, 
-		 String team, 
-		 char side, 
-		 int number, 
-		 String playMode)
-    {
-	m_timeOver = false;
-	m_krislet = krislet;
-	m_memory = new Memory();
-	//m_team = team;
-	m_side = side;
-	// m_number = number;
-	m_playMode = playMode;
+    public Brain(SendCommand krislet, String team, char side, int number, String playMode) {
+		m_timeOver = false;
+		m_krislet = krislet;
+		m_memory = new Memory();
+		//m_team = team;
+		m_side = side;
+		// m_number = number;
+		m_playMode = playMode;
 
-	ArrayList<String> agentSpec = readAgentSpec();
-	agentMapping = parseSpec(agentSpec);
+		// read in specifcation file and translate it into the agent function
+		ArrayList<String> agentSpec = readAgentSpec();
+		agentMapping = parseSpec(agentSpec);
 
-	start();
+		start();
     }
 
 	/**
@@ -76,6 +70,12 @@ class Brain extends Thread implements SensorInput
 		}
 	}
 
+	/**
+	 * translates agent specification file contents into an agent function mapping
+	 *
+	 * @param agentSpec a list of strings representing the contents of the specification file
+	 * @return a map of environment states to actions (E -> Ac)
+	 */
 	private HashMap<EnvironmentState, String> parseSpec(ArrayList<String> agentSpec){
 		HashMap<EnvironmentState, String> mapping = new HashMap<>();
 
@@ -115,21 +115,10 @@ class Brain extends Thread implements SensorInput
 			   ballVisibility = Visibility.NotVisible;
 			   ballProximity = BallProximity.Unknown;
 			} else {
-			   if( ball.m_distance > 1.0 ) {
-				   ballProximity = BallProximity.Far;
-			   } else {
-				   ballProximity = BallProximity.Close;
-			   }
-			   if( ball.m_direction != 0 ) {
-				   ballVisibility = Visibility.Visible;
-			   } else {
-				   ballVisibility = Visibility.DirectlyInFront;
-			   }
+				ballProximity = ball.m_distance > 1.0 ? BallProximity.Far : BallProximity.Close;
+				ballVisibility = ball.m_direction != 0 ? Visibility.Visible : Visibility.DirectlyInFront;
 			}
-			if( m_side == 'l' )
-				goal = m_memory.getObject("goal r");
-			else
-				goal = m_memory.getObject("goal l");
+			goal = m_side == 'l' ? m_memory.getObject("goal r") : m_memory.getObject("goal l");
 			if( goal == null ){
 				goalVisibility = Visibility.NotVisible;
 			} else if( goal.m_direction != 0 ) {
@@ -185,6 +174,11 @@ class Brain extends Thread implements SensorInput
     //===========================================================================
     // Here are suporting functions for implement logic
 
+	/**
+	 * Determines if a string contains a number
+	 * @param str the string to check
+	 * @return true if the input str can be parsed into a number
+	 */
 	public static boolean isInteger(String str) {
 		try {
 			Integer.parseInt(str);
