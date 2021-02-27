@@ -1,0 +1,29 @@
+# general form: (<ball visibility>, <ball proximity>, <goal visibility>) -> <action>:<power>:<direction>
+#
+# where:
+#	<ball visibility> is one of {NotVisible, Visible, DirectlyInFront}
+#	<ball proximity> is one of {Unknown, Close, Far}
+#	<goal visibility> is one of {NotVisible, Visible, DirectlyInFront}
+#	<action> is one of {Turn, Kick, Dash}
+#	<power> is an integer, and only applicable when <action> is kick or dash
+#	<direction> is integer, or one of {ball, goal}, and is only applicable when <action> is kick or turn
+
+(NotVisible, Unknown, NotVisible) -> Turn:40
+(NotVisible, Unknown, Visible) -> Turn:40
+(NotVisible, Unknown, DirectlyInFront) -> Turn:40
+
+(Visible, Far, NotVisible) -> Turn:ball
+(Visible, Far, Visible) -> Turn:ball
+(Visible, Far, DirectlyInFront) -> Turn:ball
+
+(Visible, Close, NotVisible) -> Turn:40
+(Visible, Close, Visible) -> Kick:100:goal
+(Visible, Close, DirectlyInFront) -> Kick:100:goal
+
+(DirectlyInFront, Far, NotVisible) -> Dash:100
+(DirectlyInFront, Far, Visible) -> Dash:100
+(DirectlyInFront, Far, DirectlyInFront) -> Dash:100
+
+(DirectlyInFront, Close, NotVisible) -> Turn:40
+(DirectlyInFront, Close, Visible) -> Turn:goal
+(DirectlyInFront, Close, DirectlyInFront) -> Kick:100:goal
