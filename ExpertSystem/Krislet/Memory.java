@@ -4,6 +4,9 @@
 //	Date:			1997/04/28
 //
 
+//    Modified by:		Luke Newton
+//	  Date:				February 28, 2021
+
 class Memory 
 {
     //---------------------------------------------------------------------------
@@ -11,6 +14,7 @@ class Memory
     // - initializes all variables
     public Memory()
     {
+		lastMessage = "";
     }
 
 
@@ -60,8 +64,17 @@ class Memory
     }
 
 
-    //===========================================================================
+	public String getLastMessage() {
+		return lastMessage;
+	}
+
+	public void setLastMessage(String lastMessage) {
+		this.lastMessage = lastMessage;
+	}
+
+	//===========================================================================
     // Private members
+	private String lastMessage;
     volatile private VisualInfo	m_info;	// place where all information is stored
     final static int SIMULATOR_STEP = 100;
 }

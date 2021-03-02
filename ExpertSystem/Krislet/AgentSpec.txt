@@ -8,22 +8,120 @@
 #	<power> is an integer, and only applicable when <action> is kick or dash
 #	<direction> is integer, or one of {ball, goal}, and is only applicable when <action> is kick or turn
 
-(NotVisible, Unknown, NotVisible) -> Turn:40
-(NotVisible, Unknown, Visible) -> Turn:40
-(NotVisible, Unknown, DirectlyInFront) -> Turn:40
+FACTS
+END_FACTS
+RULES
+# ------------------------------------------------------------------------------
+#        Rules for determining which direction the agent is looking
+# ------------------------------------------------------------------------------
+# if any of the flags on the right side of the field are visible, the agent is looking to the right
+goal_r VISIBLE -> looking_right
+flag_g_r_t VISIBLE -> looking_right
+flag_g_r_b VISIBLE -> looking_right
+flag_r_t VISIBLE -> looking_right
+flag_r_b VISIBLE -> looking_right
 
-(Visible, Far, NotVisible) -> Turn:ball
-(Visible, Far, Visible) -> Turn:ball
-(Visible, Far, DirectlyInFront) -> Turn:ball
+# if any of the flags on the left side of the field are visible, the agent is looking to the left
+goal_l VISIBLE -> looking_left
+flag_g_l_t VISIBLE -> looking_left
+flag_g_l_b VISIBLE -> looking_left
+flag_l_t VISIBLE -> looking_left
+flag_l_b VISIBLE -> looking_left
 
-(Visible, Close, NotVisible) -> Turn:40
-(Visible, Close, Visible) -> Kick:100:goal
-(Visible, Close, DirectlyInFront) -> Kick:100:goal
 
-(DirectlyInFront, Far, NotVisible) -> Dash:100
-(DirectlyInFront, Far, Visible) -> Dash:100
-(DirectlyInFront, Far, DirectlyInFront) -> Dash:100
+# ------------------------------------------------------------------------------
+#               Rules for determining the ball's position
+# ------------------------------------------------------------------------------
+# any action that would change the location of the ball means the ball
+# is no longer close to the agent and its location is unknown
+goal HEARD -> ball_far
+kick_off HEARD -> ball_far
+corner_kick HEARD -> ball_far
+free_kick HEARD -> ball_far
+drop_ball HEARD -> ball_far
+offside HEARD -> ball_far
+before_kick_off HEARD -> ball_far
+goal HEARD -> ball_far
+kick_off HEARD -> ball_direction_unknown
+corner_kick HEARD -> ball_direction_unknown
+free_kick HEARD -> ball_direction_unknown
+drop_ball HEARD -> ball_direction_unknown
+offside HEARD -> ball_direction_unknown
+before_kick_off HEARD -> ball_direction_unknown
 
-(DirectlyInFront, Close, NotVisible) -> Turn:40
-(DirectlyInFront, Close, Visible) -> Turn:goal
-(DirectlyInFront, Close, DirectlyInFront) -> Kick:100:goal
+ball VISIBLE AND ball DISTANCE LESSTHAN 1 -> ball_close
+#ball VISIBLE AND ball DISTANCE LESSTHAN 0.5 -> ball_too_close
+ball VISIBLE AND ball DISTANCE GREATERTHANEQUAL 1 -> ball_far
+ball VISIBLE AND ball DIRECTION LESSTHAN 10 AND ball DIRECTION GREATERTHAN -10 -> ball_infront
+ball VISIBLE AND ball DIRECTION GREATERTHAN 10 -> ball_to_right
+ball VISIBLE AND ball DIRECTION LESSTHAN -10 -> ball_to_left
+
+# ------------------------------------------------------------------------------
+#                   Rules for facing ball once visible
+# ------------------------------------------------------------------------------
+ball_far AND ball VISIBLE AND ball DIRECTION GREATERTHAN 50 -> do turn 50
+ball_far AND ball VISIBLE AND ball DIRECTION LESSTHAN -50 -> do turn -50
+ball_far AND ball VISIBLE AND ball DIRECTION GREATERTHAN 5 -> do turn 5
+ball_far AND ball VISIBLE AND ball DIRECTION LESSTHAN -5 -> do turn -5
+
+
+# ------------------------------------------------------------------------------
+#           Rules for finding the right goal once near the ball
+# ------------------------------------------------------------------------------
+
+# if the ball is close and we can see it, and we are looking between the goal posts, kick the ball forward
+ball_close AND ball VISIBLE AND flag_g_r_t DIRECTION LESSTHAN 0 AND flag_g_r_b DIRECTION GREATERTHAN 0 -> do kick 0
+
+# if we're near the ball and looking right, we want to kick the ball into the right goal
+# we need to point ourselves towards the goal for this
+ball_close AND looking_right AND flag_g_r_t DIRECTION GREATERTHAN 0 -> do turn 20
+ball_close AND looking_right AND flag_g_r_b DIRECTION LESSTHAN 0 -> do turn -20
+
+# if we are looking between the goal posts and remember the ball is near, but cannot see it, we need to back up to find it
+ball_close AND ball NOTVISIBLE AND flag_g_r_t DIRECTION LESSTHAN 0 AND flag_g_r_b DIRECTION GREATERTHAN 0 -> do dash -80
+
+
+# ------------------------------------------------------------------------------
+#           Rules for finding the left goal once near the ball
+# ------------------------------------------------------------------------------
+
+# if the ball is close and we can see it, and we are looking between the goal posts, kick the ball forward
+ball_close AND ball VISIBLE AND flag_g_l_t DIRECTION GREATERTHAN 0 AND flag_g_l_b DIRECTION LESSTHAN 0 -> do kick 0
+
+# if we're near the ball and looking right, we want to kick the ball into the right goal
+# we need to point ourselves towards the goal for this
+ball_close AND looking_left AND flag_g_l_t DIRECTION LESSTHAN 0 -> do turn -20
+ball_close AND looking_left AND flag_g_l_b DIRECTION GREATERTHAN 0 -> do turn 20
+
+# if we are looking between the goal posts and remember the ball is near, but cannot see it, we need to back up to find it
+ball_close AND ball NOTVISIBLE AND flag_g_l_t DIRECTION GREATERTHAN 0 AND flag_g_l_b DIRECTION LESSTHAN 0 -> do dash -80
+
+
+# ------------------------------------------------------------------------------
+#           Rules for finding any goal once near the ball
+# ------------------------------------------------------------------------------
+ball_close AND goal_r NOTVISIBLE AND goal_l NOTVISIBLE -> do turn 40
+
+
+# ------------------------------------------------------------------------------
+#           Rules for finding the ball
+# ------------------------------------------------------------------------------
+ball NOTVISIBLE AND ball_to_right -> do turn 40
+ball NOTVISIBLE AND ball_to_left -> do turn -40
+ball NOTVISIBLE AND ball_direction_unknown -> do turn 40
+
+# ------------------------------------------------------------------------------
+#                       Rules for moving towards ball
+# ------------------------------------------------------------------------------
+ball_far AND ball_infront -> do dash 80
+ball_too_close -> do dash -40
+
+END_RULES
+TRANSIENT_FACTS
+    ball_infront
+END_TRANSIENT_FACTS
+CONFLICTING_FACTS
+    ball_close, ball_far, ball_too_close
+    looking_right, looking_left
+    ball_to_left, ball_to_right, ball_direction_unknown
+END_CONFLICTING_FACTS
