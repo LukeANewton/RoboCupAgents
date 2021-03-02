@@ -1,121 +1,154 @@
-# general form: (<ball visibility>, <ball proximity>, <goal visibility>) -> <action>:<power>:<direction>
+# the specification for the agent is written as a combination of rules and facts
 #
-# where:
-#	<ball visibility> is one of {NotVisible, Visible, DirectlyInFront}
-#	<ball proximity> is one of {Unknown, Close, Far}
-#	<goal visibility> is one of {NotVisible, Visible, DirectlyInFront}
-#	<action> is one of {Turn, Kick, Dash}
-#	<power> is an integer, and only applicable when <action> is kick or dash
-#	<direction> is integer, or one of {ball, goal}, and is only applicable when <action> is kick or turn
+# There are 4 sections of the specification file:
+#       1. Facts
+#              These are single words (no spaces, but can contain dashes or underscores) that
+#              represent a true predicate. Anything in the agent's list of facts represents a
+#              true statement. Specifying any facts in this file represents truths that the
+#              agent immediately knows on activation.
+#       2. Rules
+#              Rules are of the form:  <antecedent> -> <consequent>
+#              where the antecendent is one or more facts or comparisons connected by ANDs,
+#              and the consequent is a single fact or action. If all parts of the antecedent
+#              evaluate to true or are in the knowledge base, then the consequent is added
+#              to the knowledge base.
+#
+#              Comparisons can be used to measure aspects of the environment, and come in
+#              two flavors: visual or auditory
+#
+#              Visual comparisons are of the form: <object> <property> <operator> <value>
+#              where <object> is either "ball", one of the goals, or any of the flags on the field,
+#              <property> is one of {DISTANCE, DIRECTION, VISIBLE, NOTVISIBLE},
+#              <operator is one of {EQUAL, LESSTHAN, GREATERTHAN, LESSTHANEQUAL, GREATERTHANEQUAL, NOTEQUAL},
+#              and <value> is a real number. In the case <property> is one of {VISIBLE, NOTVISIBLE}, the
+#              <operator> and <value> is not used. These can be used to reason about what the agent can see.
+#
+#              Auditory comparisons are of the form: <event> HEARD
+#              where <event> is a single word (no spaces, but can contain dashes or underscores) that
+#              represents any of the messages broadcast to agents (e.g. goal, free_kick, drop_ball).
+#
+#              Actions are consequents that tell the agent to do an action. They are of the form:
+#              do <action> <value>
+#              where <action> is one of {turn, kick, dash} and <value> is a real number.
+#              For turn, <value> is the amount to rotate the agent.
+#              For kick, <value> is the direction to kick.
+#              For dash, <value> is the power to dash with.
+#       3. Transient Facts
+#              These are facts which are not remembered from one tick of the simulation.
+#              Once the agent deduces is should do an action, any facts listed here are removed
+#              from the knowledge base.
+#       4. Conflicting Facts
+#              This contains sets of facts that are mutually exclusive. For each comma separated list
+#              of facts here, only one fact in the list can exist in the knowledge base at any given time.
+#              If a fact has been deduced and is to be added to the knowledge base. Any other facts in the
+#              same comma separated list here is removed from the knowledge base.
 
 FACTS
 END_FACTS
 RULES
-# ------------------------------------------------------------------------------
-#        Rules for determining which direction the agent is looking
-# ------------------------------------------------------------------------------
-# if any of the flags on the right side of the field are visible, the agent is looking to the right
-goal_r VISIBLE -> looking_right
-flag_g_r_t VISIBLE -> looking_right
-flag_g_r_b VISIBLE -> looking_right
-flag_r_t VISIBLE -> looking_right
-flag_r_b VISIBLE -> looking_right
+    # ------------------------------------------------------------------------------
+    #        Rules for determining which direction the agent is looking
+    # ------------------------------------------------------------------------------
+    # if any of the flags on the right side of the field are visible, the agent is looking to the right
+    goal_r VISIBLE -> looking_right
+    flag_g_r_t VISIBLE -> looking_right
+    flag_g_r_b VISIBLE -> looking_right
+    flag_r_t VISIBLE -> looking_right
+    flag_r_b VISIBLE -> looking_right
 
-# if any of the flags on the left side of the field are visible, the agent is looking to the left
-goal_l VISIBLE -> looking_left
-flag_g_l_t VISIBLE -> looking_left
-flag_g_l_b VISIBLE -> looking_left
-flag_l_t VISIBLE -> looking_left
-flag_l_b VISIBLE -> looking_left
-
-
-# ------------------------------------------------------------------------------
-#               Rules for determining the ball's position
-# ------------------------------------------------------------------------------
-# any action that would change the location of the ball means the ball
-# is no longer close to the agent and its location is unknown
-goal HEARD -> ball_far
-kick_off HEARD -> ball_far
-corner_kick HEARD -> ball_far
-free_kick HEARD -> ball_far
-drop_ball HEARD -> ball_far
-offside HEARD -> ball_far
-before_kick_off HEARD -> ball_far
-goal HEARD -> ball_far
-kick_off HEARD -> ball_direction_unknown
-corner_kick HEARD -> ball_direction_unknown
-free_kick HEARD -> ball_direction_unknown
-drop_ball HEARD -> ball_direction_unknown
-offside HEARD -> ball_direction_unknown
-before_kick_off HEARD -> ball_direction_unknown
-
-ball VISIBLE AND ball DISTANCE LESSTHAN 1 -> ball_close
-#ball VISIBLE AND ball DISTANCE LESSTHAN 0.5 -> ball_too_close
-ball VISIBLE AND ball DISTANCE GREATERTHANEQUAL 1 -> ball_far
-ball VISIBLE AND ball DIRECTION LESSTHAN 10 AND ball DIRECTION GREATERTHAN -10 -> ball_infront
-ball VISIBLE AND ball DIRECTION GREATERTHAN 10 -> ball_to_right
-ball VISIBLE AND ball DIRECTION LESSTHAN -10 -> ball_to_left
-
-# ------------------------------------------------------------------------------
-#                   Rules for facing ball once visible
-# ------------------------------------------------------------------------------
-ball_far AND ball VISIBLE AND ball DIRECTION GREATERTHAN 50 -> do turn 50
-ball_far AND ball VISIBLE AND ball DIRECTION LESSTHAN -50 -> do turn -50
-ball_far AND ball VISIBLE AND ball DIRECTION GREATERTHAN 5 -> do turn 5
-ball_far AND ball VISIBLE AND ball DIRECTION LESSTHAN -5 -> do turn -5
+    # if any of the flags on the left side of the field are visible, the agent is looking to the left
+    goal_l VISIBLE -> looking_left
+    flag_g_l_t VISIBLE -> looking_left
+    flag_g_l_b VISIBLE -> looking_left
+    flag_l_t VISIBLE -> looking_left
+    flag_l_b VISIBLE -> looking_left
 
 
-# ------------------------------------------------------------------------------
-#           Rules for finding the right goal once near the ball
-# ------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
+    #               Rules for determining the ball's position
+    # ------------------------------------------------------------------------------
+    # any event that would change the location of the ball means the ball
+    # is no longer close to the agent and its location is unknown
+    goal HEARD -> ball_far
+    kick_off HEARD -> ball_far
+    corner_kick HEARD -> ball_far
+    free_kick HEARD -> ball_far
+    drop_ball HEARD -> ball_far
+    offside HEARD -> ball_far
+    before_kick_off HEARD -> ball_far
+    goal HEARD -> ball_far
+    kick_off HEARD -> ball_direction_unknown
+    corner_kick HEARD -> ball_direction_unknown
+    free_kick HEARD -> ball_direction_unknown
+    drop_ball HEARD -> ball_direction_unknown
+    offside HEARD -> ball_direction_unknown
+    before_kick_off HEARD -> ball_direction_unknown
 
-# if the ball is close and we can see it, and we are looking between the goal posts, kick the ball forward
-ball_close AND ball VISIBLE AND flag_g_r_t DIRECTION LESSTHAN 0 AND flag_g_r_b DIRECTION GREATERTHAN 0 -> do kick 0
+    ball VISIBLE AND ball DISTANCE LESSTHAN 1 -> ball_close
+    ball VISIBLE AND ball DISTANCE GREATERTHANEQUAL 1 -> ball_far
+    ball VISIBLE AND ball DIRECTION LESSTHAN 10 AND ball DIRECTION GREATERTHAN -10 -> ball_infront
+    ball VISIBLE AND ball DIRECTION GREATERTHAN 10 -> ball_to_right
+    ball VISIBLE AND ball DIRECTION LESSTHAN -10 -> ball_to_left
 
-# if we're near the ball and looking right, we want to kick the ball into the right goal
-# we need to point ourselves towards the goal for this
-ball_close AND looking_right AND flag_g_r_t DIRECTION GREATERTHAN 0 -> do turn 20
-ball_close AND looking_right AND flag_g_r_b DIRECTION LESSTHAN 0 -> do turn -20
-
-# if we are looking between the goal posts and remember the ball is near, but cannot see it, we need to back up to find it
-ball_close AND ball NOTVISIBLE AND flag_g_r_t DIRECTION LESSTHAN 0 AND flag_g_r_b DIRECTION GREATERTHAN 0 -> do dash -80
-
-
-# ------------------------------------------------------------------------------
-#           Rules for finding the left goal once near the ball
-# ------------------------------------------------------------------------------
-
-# if the ball is close and we can see it, and we are looking between the goal posts, kick the ball forward
-ball_close AND ball VISIBLE AND flag_g_l_t DIRECTION GREATERTHAN 0 AND flag_g_l_b DIRECTION LESSTHAN 0 -> do kick 0
-
-# if we're near the ball and looking right, we want to kick the ball into the right goal
-# we need to point ourselves towards the goal for this
-ball_close AND looking_left AND flag_g_l_t DIRECTION LESSTHAN 0 -> do turn -20
-ball_close AND looking_left AND flag_g_l_b DIRECTION GREATERTHAN 0 -> do turn 20
-
-# if we are looking between the goal posts and remember the ball is near, but cannot see it, we need to back up to find it
-ball_close AND ball NOTVISIBLE AND flag_g_l_t DIRECTION GREATERTHAN 0 AND flag_g_l_b DIRECTION LESSTHAN 0 -> do dash -80
-
-
-# ------------------------------------------------------------------------------
-#           Rules for finding any goal once near the ball
-# ------------------------------------------------------------------------------
-ball_close AND goal_r NOTVISIBLE AND goal_l NOTVISIBLE -> do turn 40
+    # ------------------------------------------------------------------------------
+    #                   Rules for facing ball once visible
+    # ------------------------------------------------------------------------------
+    ball_far AND ball VISIBLE AND ball DIRECTION GREATERTHAN 50 -> do turn 50
+    ball_far AND ball VISIBLE AND ball DIRECTION LESSTHAN -50 -> do turn -50
+    ball_far AND ball VISIBLE AND ball DIRECTION GREATERTHAN 5 -> do turn 5
+    ball_far AND ball VISIBLE AND ball DIRECTION LESSTHAN -5 -> do turn -5
 
 
-# ------------------------------------------------------------------------------
-#           Rules for finding the ball
-# ------------------------------------------------------------------------------
-ball NOTVISIBLE AND ball_to_right -> do turn 40
-ball NOTVISIBLE AND ball_to_left -> do turn -40
-ball NOTVISIBLE AND ball_direction_unknown -> do turn 40
+    # ------------------------------------------------------------------------------
+    #           Rules for finding the right goal once near the ball
+    # ------------------------------------------------------------------------------
 
-# ------------------------------------------------------------------------------
-#                       Rules for moving towards ball
-# ------------------------------------------------------------------------------
-ball_far AND ball_infront -> do dash 80
-ball_too_close -> do dash -40
+    # if the ball is close and we can see it, and we are looking between the goal posts, kick the ball forward
+    ball_close AND ball VISIBLE AND flag_g_r_t DIRECTION LESSTHAN 0 AND flag_g_r_b DIRECTION GREATERTHAN 0 -> do kick 0
 
+    # if we're near the ball and looking right, we want to kick the ball into the right goal
+    # we need to point ourselves towards the goal for this
+    ball_close AND looking_right AND flag_g_r_t DIRECTION GREATERTHAN 0 -> do turn 20
+    ball_close AND looking_right AND flag_g_r_b DIRECTION LESSTHAN 0 -> do turn -20
+
+    # if we are looking between the goal posts and remember the ball is near, but cannot see it, we need to back up to find it
+    ball_close AND ball NOTVISIBLE AND flag_g_r_t DIRECTION LESSTHAN 0 AND flag_g_r_b DIRECTION GREATERTHAN 0 -> do dash -80
+
+
+    # ------------------------------------------------------------------------------
+    #           Rules for finding the left goal once near the ball
+    # ------------------------------------------------------------------------------
+
+    # if the ball is close and we can see it, and we are looking between the goal posts, kick the ball forward
+    ball_close AND ball VISIBLE AND flag_g_l_t DIRECTION GREATERTHAN 0 AND flag_g_l_b DIRECTION LESSTHAN 0 -> do kick 0
+
+    # if we're near the ball and looking right, we want to kick the ball into the right goal
+    # we need to point ourselves towards the goal for this
+    ball_close AND looking_left AND flag_g_l_t DIRECTION LESSTHAN 0 -> do turn -20
+    ball_close AND looking_left AND flag_g_l_b DIRECTION GREATERTHAN 0 -> do turn 20
+
+    # if we are looking between the goal posts and remember the ball is near, but cannot see it, we need to back up to find it
+    ball_close AND ball NOTVISIBLE AND flag_g_l_t DIRECTION GREATERTHAN 0 AND flag_g_l_b DIRECTION LESSTHAN 0 -> do dash -80
+
+
+    # ------------------------------------------------------------------------------
+    #           Rules for finding any goal once near the ball
+    # ------------------------------------------------------------------------------
+    ball_close AND goal_r NOTVISIBLE AND goal_l NOTVISIBLE -> do turn 40
+
+
+    # ------------------------------------------------------------------------------
+    #           Rules for finding the ball
+    # ------------------------------------------------------------------------------
+    ball NOTVISIBLE AND ball_to_right -> do turn 40
+    ball NOTVISIBLE AND ball_to_left -> do turn -40
+    ball NOTVISIBLE AND ball_direction_unknown -> do turn 40
+
+    # ------------------------------------------------------------------------------
+    #                       Rules for moving towards ball
+    # ------------------------------------------------------------------------------
+    ball_far AND ball_infront -> do dash 80
+    ball_too_close -> do dash -40
 END_RULES
 TRANSIENT_FACTS
     ball_infront

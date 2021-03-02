@@ -1,8 +1,13 @@
 import java.util.ArrayList;
 
+/**
+ * This represents a predicate that can be placed in a rule's consequent or antecent, or as  afact in the knowledge base
+ */
 public class SimplePredicate extends Predicate{
+    // the contents of the predicate
     private String predicate;
 
+    /** Constructor */
     public SimplePredicate(String predicate) {
         this.predicate = predicate;
     }

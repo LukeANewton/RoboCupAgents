@@ -1,11 +1,19 @@
 import java.util.ArrayList;
 
+/**
+ * This represents a predicate in a rule antecedent that measures some aspect of the agent's environemt
+ */
 public class ComparisonPredicate extends Predicate{
+    // the object in the environment to measure a property of
     private String object;
+    // the property of the object to check
     private ObjectAttribute attribute;
+    // how we are going to compare the object property to a value
     private ComparisonOperator comparisonOperator;
+    // the value to compare to the object property
     private float value;
 
+    /** Constructor */
     public ComparisonPredicate(String object, ObjectAttribute attribute, ComparisonOperator comparisonOperator, float value) {
         this.object = object;
         this.attribute = attribute;
@@ -13,6 +21,7 @@ public class ComparisonPredicate extends Predicate{
         this.value = value;
     }
 
+    /** constuctor */ 
     public ComparisonPredicate(String object, ObjectAttribute attribute) {
         this.object = object;
         this.attribute = attribute;

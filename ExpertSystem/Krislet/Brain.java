@@ -22,13 +22,17 @@ class Brain extends Thread implements SensorInput
 {
 	// the name of the file containing the agent behaviors
 	private static final String agentSpecFilename = "AgentSpec.txt";
-
+	// the list of facts the agent has in its knowledge base
 	private ArrayList<SimplePredicate> facts;
+	// the list of facts that an agent should not remember
 	private ArrayList<SimplePredicate> transientFacts;
+	// a list of fact lists, where at most only one fact from each list should be in the knowledge base at any time
 	private ArrayList<ArrayList<SimplePredicate>> conflictingFacts;
+	// the list of rules the agent has in its knowledge base
 	private ArrayList<Rule> rules;
+	// the last message received from the server about the state of the game
 	private String lastMessage;
-
+	// an enumeration of the possible agent actions
 	private enum Action {turn, dash, kick;}
 
     //---------------------------------------------------------------------------
@@ -56,6 +60,7 @@ class Brain extends Thread implements SensorInput
 		start();
     }
 
+    /** the agent's behavior */
     public void run() {
 		// first put it somewhere on my side
 		if(Pattern.matches("^before_kick_off.*",m_playMode))
@@ -68,27 +73,6 @@ class Brain extends Thread implements SensorInput
 			boolean actionPerformed = false;
 			boolean factAdded = true;
 			while (factAdded && !actionPerformed){
-				System.out.println(" ");
-				for(SimplePredicate f:facts)
-					System.out.println(f);
-				ObjectInfo o = m_memory.getObject("ball");
-				if(o != null){
-					System.out.println( "Ball distnace: " + o.m_distance);
-					System.out.println( "Ball direction: " + o.m_direction);
-				}
-
-
-				o = m_memory.getObject("goal r");
-				if(o != null){
-					System.out.println( "Goal distnace: " + o.m_distance);
-					System.out.println( "Goal direction: " + o.m_direction);
-				}
-				o = m_memory.getObject("goal l");
-				if(o != null){
-					System.out.println( "Goal distnace: " + o.m_distance);
-					System.out.println( "Goal direction: " + o.m_direction);
-				}
-
 				/* repeatedly check rules until a rule holds that results in an action, or
 				no new knowledge is gained over an iteration (no action will ever be
 				perfromed)*/
@@ -158,19 +142,35 @@ class Brain extends Thread implements SensorInput
     //===========================================================================
     // Here are suporting functions for implement logic
 
+	/**
+	 * parse the facts listed in the agent specification file
+	 *
+	 * @param fileContents an arraylist containing the contents of the agent specification file
+	 * @return an arraylist of facts for the knowledge base
+	 */
 	private ArrayList<SimplePredicate> readAgentSpecFacts(ArrayList<String> fileContents){
 		return readAgentSpecField(fileContents, "FACTS");
-
 	}
 
+	/**
+	 * parse the transient facts listed in the agent specification file
+	 *
+	 * @param fileContents an arraylist containing the contents of the agent specification file
+	 * @return an arraylist of transient facts to forget after each action is taken
+	 */
 	private ArrayList<SimplePredicate> readAgentSpecTransientFacts(ArrayList<String> fileContents){
 		return readAgentSpecField(fileContents, "TRANSIENT_FACTS");
 	}
 
+	/**
+	 * a helper function to parse a text containing a list of facts
+	 *
+	 * @param fileContents an arraylist containing the contents of the agent specification file
+	 * @return an arraylist of facts
+	 */
 	private ArrayList<SimplePredicate> readAgentSpecField(ArrayList<String> fileContents, String tag){
 		ArrayList<SimplePredicate> facts = new ArrayList<>();
 		boolean foundStart = false;
-
 		for(String line: fileContents){
 			if (line.equals(tag)){
 				foundStart = true;
@@ -180,14 +180,18 @@ class Brain extends Thread implements SensorInput
 			else if(foundStart)
 				facts.add(new SimplePredicate(line));
 		}
-
 		return facts;
 	}
 
+	/**
+	 * parse the conflicting fact lists in the agent specification
+	 *
+	 * @param fileContents an arraylist containing the contents of the agent specification file
+	 * @return a list of lists where each list is a set of conflicting facts
+	 */
 	private ArrayList<ArrayList<SimplePredicate>> readAgentSpecConflictingFacts(ArrayList<String> fileContents){
 		ArrayList<ArrayList<SimplePredicate>> facts = new ArrayList<>();
 		boolean foundStart = false;
-
 		for(String line: fileContents){
 			if (line.equals("CONFLICTING_FACTS")){
 				foundStart = true;
@@ -204,6 +208,12 @@ class Brain extends Thread implements SensorInput
 		return facts;
 	}
 
+	/**
+	 * parse the rules contained in the agent specification
+	 *
+	 * @param fileContents an arraylist containing the contents of the agent specification file
+	 * @return an arraylist of rules
+	 */
 	private ArrayList<Rule> readAgentSpecRules(ArrayList<String> fileContents){
 		ArrayList<Rule> rules = new ArrayList<>();
 		boolean foundStart = false;
