@@ -1,0 +1,24 @@
+MAS roboCupTeam {
+
+	infrastructure: Centralised
+
+	environment: RoboCupGame
+
+	agents:
+		//test
+		player1 forward;
+		player2 forward;
+		player3 defender;
+		player4 defender;
+		player5 goalie;
+
+		//carleton
+		player6 forward;
+		player7 forward;
+		player8 defender;
+		player9 defender;
+		player10 goalie;
+
+	aslSourcePath:
+		"src/asl";
+}

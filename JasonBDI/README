@@ -1,0 +1,11 @@
+This folder contains the deliverables for the SYSC5103 Winter 2021 project. 
+
+The following describes the contents of the this folder:
+
+1. roboCupTeam.jar is an easy to execute binary of the project. This will connect two teams to the robocup server.
+
+2. the source code folder contains the source code used to create the jar file
+
+3. Presentation Slides.pdf is a copy of the slides used for the in-class presentation
+
+4. SYSC5103 Final Report.pdf is the 3 page final report in IEEE format, which describes how the code works and how to complie/execute the project
